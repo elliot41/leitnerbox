@@ -32,16 +32,23 @@ function App() {
   }, []);
 
   // Ajouter une flashcard dans Supabase
+  const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
   async function addFlashcard(e) {
     e.preventDefault();
+    setErrorMsg('');
+    setSuccessMsg('');
     if (question && answer) {
-      const { data, error } = await supabase
+      const { data, error, status } = await supabase
         .from('flashcards')
         .insert([{ question, answer, box: 1 }]);
-      if (!error) {
-        setFlashcards([...flashcards, { ...data[0] }]);
+      if (status === 201) {
+        setSuccessMsg('La carte a bien été ajoutée en base de données.');
+        setFlashcards(data && data[0] ? [...flashcards, { ...data[0] }] : flashcards);
         setQuestion('');
         setAnswer('');
+      } else {
+        setErrorMsg("Impossible d'ajouter la flashcard. Vérifiez la connexion à Supabase et les permissions.");
       }
     }
   }
@@ -85,9 +92,11 @@ function App() {
             />
             <button type="submit">Ajouter</button>
           </form>
+          {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
+          {successMsg && <p style={{ color: 'green' }}>{successMsg}</p>}
           <h3>Liste des flashcards</h3>
           <ul>
-            {flashcards.map((fc, idx) => (
+            {flashcards.map((fc) => (
               <li key={fc.id}><strong>Q:</strong> {fc.question} <strong>R:</strong> {fc.answer}</li>
             ))}
           </ul>
