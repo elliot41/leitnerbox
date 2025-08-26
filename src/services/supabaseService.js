@@ -57,7 +57,7 @@ export const createFlashcard = async (flashcard) => {
   const { data: session } = await supabase.auth.getSession();
 
   if (!session?.session?.user) {
-    throw new Error("Utilisateur non authentifié");
+    throw new Error("Utilisateur non authentifié ! ");
   }
 
   const flashcardWithUserId = {
