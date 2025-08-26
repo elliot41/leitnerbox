@@ -60,44 +60,79 @@ function App() {
   };
 
   return (
-    <div id="root">
-      <h1>Flashcards Leitner</h1>
+    <div className="app-container">
+      <header className="app-header">
+        <h1>Flashcards Leitner</h1>
+      </header>
       
-      {/* Composant d'authentification */}
-      <div className="auth-wrapper" style={{ marginBottom: '2em' }}>
-        <AuthComponent user={user} onUserChange={setUser} />
-      </div>
-      
-      {user ? (
-        <>
-          <nav style={{ marginBottom: '2em' }}>
-            <button onClick={() => setView('home')}>Créer des flashcards</button>
-            <button onClick={() => setView('leitner')}>Lire le deck (Leitner)</button>
-          </nav>
-          
-          {loading ? <p>Chargement...</p> : (
-            <>
-              {view === 'home' && (
-                <div>
-                  <FlashcardForm onFlashcardAdded={handleFlashcardAdded} />
-                  <FlashcardList flashcards={flashcards} />
-                </div>
-              )}
+      <div className="app-content">
+        {user ? (
+          <>
+            {/* Menu latéral gauche */}
+            <aside className="sidebar">
+              <div className="user-info">
+                <h3>Menu Utilisateur</h3>
+                <p>{user.email}</p>
+              </div>
               
-              {view === 'leitner' && (
-                <LeitnerDeck 
-                  flashcards={flashcards} 
-                  onFlashcardUpdated={handleFlashcardUpdated} 
-                />
+              <nav className="side-nav">
+                <button 
+                  className={`nav-button ${view === 'home' ? 'active' : ''}`}
+                  onClick={() => setView('home')}
+                >
+                  Créer des flashcards
+                </button>
+                <button 
+                  className={`nav-button ${view === 'leitner' ? 'active' : ''}`}
+                  onClick={() => setView('leitner')}
+                >
+                  Lire le deck (Leitner)
+                </button>
+                <button 
+                  className={`nav-button ${view === 'user' ? 'active' : ''}`}
+                  onClick={() => setView('user')}
+                >
+                  Gestion utilisateur
+                </button>
+              </nav>
+            </aside>
+            
+            {/* Contenu principal */}
+            <main className="main-content">
+              {loading ? <p>Chargement...</p> : (
+                <>
+                  {view === 'home' && (
+                    <div>
+                      <FlashcardForm onFlashcardAdded={handleFlashcardAdded} />
+                      <FlashcardList flashcards={flashcards} />
+                    </div>
+                  )}
+                  
+                  {view === 'leitner' && (
+                    <LeitnerDeck 
+                      flashcards={flashcards} 
+                      onFlashcardUpdated={handleFlashcardUpdated} 
+                    />
+                  )}
+                  
+                  {view === 'user' && (
+                    <div className="user-management">
+                      <h2>Gestion de votre compte</h2>
+                      <AuthComponent user={user} onUserChange={setUser} />
+                    </div>
+                  )}
+                </>
               )}
-            </>
-          )}
-        </>
-      ) : (
-        <div style={{ textAlign: 'center', marginTop: '2em' }}>
-          <p>Veuillez vous connecter pour accéder à vos flashcards.</p>
-        </div>
-      )}
+            </main>
+          </>
+        ) : (
+          <div className="login-container">
+            <h2>Bienvenue sur Flashcards Leitner</h2>
+            <p>Veuillez vous connecter pour accéder à vos flashcards.</p>
+            <AuthComponent user={user} onUserChange={setUser} />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
