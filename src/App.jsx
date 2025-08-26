@@ -1,20 +1,58 @@
 
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
 import './App.css';
+
+const supabaseUrl = 'https://lthyxlwppzscnxrrmtcu.supabase.co';
+const supabaseKey = 'sb_publishable_1Ir3hfeSEZwDySIZNn1mtA_PQjs8lfK';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 
 function App() {
   const [flashcards, setFlashcards] = useState([]);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
   const [view, setView] = useState('home');
+  const [loading, setLoading] = useState(true);
 
-  function addFlashcard(e) {
+  // Charger les flashcards depuis Supabase au démarrage
+  useEffect(() => {
+    async function fetchFlashcards() {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('flashcards')
+        .select('*');
+      if (!error && data) {
+        setFlashcards(data);
+      }
+      setLoading(false);
+    }
+    fetchFlashcards();
+  }, []);
+
+  // Ajouter une flashcard dans Supabase
+  async function addFlashcard(e) {
     e.preventDefault();
     if (question && answer) {
-      setFlashcards([...flashcards, { question, answer, box: 1 }]);
-      setQuestion('');
-      setAnswer('');
+      const { data, error } = await supabase
+        .from('flashcards')
+        .insert([{ question, answer, box: 1 }]);
+      if (!error) {
+        setFlashcards([...flashcards, { ...data[0] }]);
+        setQuestion('');
+        setAnswer('');
+      }
     }
+  }
+
+  // Mettre à jour une flashcard dans Supabase
+  async function updateFlashcardBox(id, newBox) {
+    await supabase
+      .from('flashcards')
+      .update({ box: newBox })
+      .eq('id', id);
+    setFlashcards(flashcards => flashcards.map(fc => fc.id === id ? { ...fc, box: newBox } : fc));
   }
 
   return (
@@ -24,7 +62,8 @@ function App() {
         <button onClick={() => setView('home')}>Créer des flashcards</button>
         <button onClick={() => setView('leitner')}>Lire le deck (Leitner)</button>
       </nav>
-      {view === 'home' && (
+      {loading ? <p>Chargement...</p> : null}
+      {view === 'home' && !loading && (
         <div>
           <h2>Créer une flashcard</h2>
           <form onSubmit={addFlashcard} style={{ marginBottom: '2em' }}>
@@ -49,44 +88,41 @@ function App() {
           <h3>Liste des flashcards</h3>
           <ul>
             {flashcards.map((fc, idx) => (
-              <li key={idx}><strong>Q:</strong> {fc.question} <strong>R:</strong> {fc.answer}</li>
+              <li key={fc.id}><strong>Q:</strong> {fc.question} <strong>R:</strong> {fc.answer}</li>
             ))}
           </ul>
         </div>
       )}
-      {view === 'leitner' && (
-        <LeitnerDeck flashcards={flashcards} setFlashcards={setFlashcards} />
+      {view === 'leitner' && !loading && (
+        <LeitnerDeck flashcards={flashcards} updateFlashcardBox={updateFlashcardBox} />
       )}
     </div>
   );
 }
 
-function LeitnerDeck({ flashcards, setFlashcards }) {
+
+function LeitnerDeck({ flashcards, updateFlashcardBox }) {
   const [currentBox, setCurrentBox] = useState(1);
   const boxes = [1, 2, 3, 4, 5];
   const cardsInBox = flashcards.filter(fc => fc.box === currentBox);
   const [currentIdx, setCurrentIdx] = useState(0);
   const [showAnswer, setShowAnswer] = useState(false);
 
-  function handleCorrect() {
+  async function handleCorrect() {
     setShowAnswer(false);
-    setFlashcards(flashcards => flashcards.map((fc, idx) => {
-      if (fc.box === currentBox && idx === flashcards.findIndex((c, i) => c.box === currentBox && i === currentIdx)) {
-        return { ...fc, box: Math.min(fc.box + 1, 5) };
-      }
-      return fc;
-    }));
+    const card = cardsInBox[currentIdx];
+    if (card) {
+      await updateFlashcardBox(card.id, Math.min(card.box + 1, 5));
+    }
     setCurrentIdx(idx => idx + 1);
   }
 
-  function handleIncorrect() {
+  async function handleIncorrect() {
     setShowAnswer(false);
-    setFlashcards(flashcards => flashcards.map((fc, idx) => {
-      if (fc.box === currentBox && idx === flashcards.findIndex((c, i) => c.box === currentBox && i === currentIdx)) {
-        return { ...fc, box: 1 };
-      }
-      return fc;
-    }));
+    const card = cardsInBox[currentIdx];
+    if (card) {
+      await updateFlashcardBox(card.id, 1);
+    }
     setCurrentIdx(idx => idx + 1);
   }
 
